@@ -1,0 +1,99 @@
+#!/bin/bash
+
+#PURPOSE
+#push locally stored lambda functions to aws lambda cloud
+
+#CLI REFERENCE
+#local-lambda $1=lambdaFunctionName $2={{-update or -create}} 
+#-update flag for functions that already exist in lambda
+#-create flag for functions that do not exist in lambda 
+
+#TO-DO
+#create config file for this script so absolute paths may be removed 
+
+if [ "$1" = "" ]; 
+    then 
+        echo "Usage: local-lambda [--function=~/NetBeansProjects/lambda/<dir>/] [<-update> || <-create>]" 
+        exit 0
+else
+    echo `date` ">>> Checking if watch process is running..."
+    if [ -z $(pgrep -f "node /usr/local/bin/watch local-s3") ];
+        then
+            echo "Run the following process and try again:"
+            echo "watch 'local-s3 $1' $1 -d &"
+            echo "Be sure to be in the appropriate directory (or use absolute path) and disown the job from terminal window."
+            exit 1
+    else
+        echo `date` ">>> The following watch process is running:"
+            echo `date` ">>>" $(ps ux | grep $(pgrep -f "node /usr/local/bin/watch local-s3"))
+            #STDOUT and STDERR will go to this file
+            echo `date` ">>> Beginning local-lambda process..."
+            echo `date` ">>> STDOUT and STDERR will log to ~/NetBeansProjects/shellScripts/logs/local-lambda.txt ..."
+            exec >> ~/NetBeansProjects/shellScripts/logs/local-lambda.txt
+
+            #go to locally stored lambda function
+            echo `date` ">>> cd to ~/NetBeansProjects/lambda/$1/ ..."
+            if [ -d ~/NetBeansProjects/lambda/$1/ ]; 
+                then
+                    cd ~/NetBeansProjects/lambda/$1/ 
+                    echo `date` ">>> Successful entered directory ..."
+                else 
+                    echo `date` ">>> ~/NetBeansProjects/lambda/$1/ is not an existing lambda function on the local machine "
+                    exit 1 
+            fi ;
+
+            #delete currently existing zip file if it exists
+
+            if [ -e "$1.zip" ]; 
+                then 
+                    rm $1.zip 
+                    echo `date` "Deleting existing $1.zip ..."
+            fi ;
+
+            #zip index file and node modules folder
+            echo `date` ">>> Zipping files" 
+            zip -r $1 . -i $1.js node_modules/
+
+            #make duplicate of this zipped file and place in ~/Desktop/s3/jennyvallon/lambdafunctions/
+            echo `date` ">>> Copying $1.zip to local s3 directory @ ~/Desktop/s3/jennyvallon/lambdafunctions/ " 
+            cp $1.zip ~/Desktop/s3/jennyvallon/lambdafunctions 
+
+            #wait one minute for watch to push new file to s3
+            echo `date` ">>> Waiting for local-s3 to push $1.zip local file to aws s3 bucket"
+            sleep 10
+
+            #run aws lambda cli command to push from s3 to lambda
+            case $2 in 
+                "-update") 
+                    echo `date` ">>>Updating function $1"
+                    echo `date` ">>>AWS response:"
+                    /usr/bin/python `which aws` lambda update-function-code \
+                    --region us-west-2 \
+                    --function-name $1 \
+                    --s3-bucket jennyvallon \
+                    --s3-key lambdafunctions/$1.zip
+                ;; 
+
+                "-create") 
+                    echo `date` ">>>Creating function $1"
+                    echo `date` ">>>AWS response:"
+                    /usr/bin/python `which aws` lambda create-function \
+                    --region us-west-2 \
+                    --function-name $1 \
+                    --code S3Bucket=jennyvallon,S3Key=lambdafunctions/$1.zip 
+                    --role arn:aws:iam::825909266047:role/lambdaExecutor \
+                    --handler $1.handler \
+                    --runtime node4.3 \
+                    --profile default \
+                    --timeout 10 \
+                    --memory-size 1024 
+                ;; 
+            esac
+            echo `date` ">>>Process complete"
+            echo
+            echo ------end-------
+            echo
+            exit
+            exec echo `date` ">>>Process complete"
+    fi ;
+fi ;

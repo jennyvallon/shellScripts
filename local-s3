@@ -1,0 +1,36 @@
+#!/bin/bash
+#this script is used to automatically update s3 buckets of the same name
+
+#TO-DO
+#create config file for this script so absolute paths may be removed 
+
+if [ "$1" = "" ]; 
+    then 
+        echo "Usage: local-s3 [--bucket = ~/Desktop/s3/<dir>/]" 
+        exit 0
+else
+    exec >> ~/NetBeansProjects/shellScripts/logs/local-s3.txt
+    echo `date` ">>> Pushing data to s3 bucket $1"
+
+    #specify working directory
+    echo `date` ">>> Entering working directory ~/Desktop/s3/$1/"
+    if [ -d ~/Desktop/s3/$1/ ];
+        then 
+            cd ~/Desktop/s3/$1/ 
+            echo `date` "Working directory now ~/Desktop/s3/$1/"
+        else 
+            echo `date` ">>> ~/Desktop/s3/$1/ is not a valid directory" 
+            exit 1
+    fi ;
+
+    #use this version of python sync the current directory with the $1 s3 bucket. 
+    #set permissions to public-read.
+    #delete files that are not in s3 Bucket.
+    echo `date` ">>> Executing aws s3 sync command..."
+    /usr/bin/python `which aws` s3 sync . s3://$1/ --acl public-read --delete
+    echo `date` ">>> Process complete"
+    echo
+    echo ------end-------
+    echo
+    exit
+fi ;
