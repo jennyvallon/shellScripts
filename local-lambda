@@ -43,14 +43,13 @@ else
             fi ;
 
             #delete currently existing zip file if it exists
-
             if [ -e "$1.zip" ]; 
                 then 
                     rm $1.zip 
                     echo `date` "Deleting existing $1.zip ..."
             fi ;
 
-            #zip index file and node modules folder
+            #zip $1 file and node modules folder
             echo `date` ">>> Zipping files" 
             zip -r $1 . -i $1.js node_modules/
 
@@ -89,11 +88,25 @@ else
                     --memory-size 1024 
                 ;; 
             esac
+            echo `date` ">>>Push to Lambda complete"
+            
+            #test the new function
+            echo `date` ">>>Testing lambda function $1..."
+            echo `date` ">>>Function Payload: ~/Desktop/s3/jennyvallon/lambdafunctions/$1/$1.txt"
+            echo
+            echo `date` ">>>Test Output:..."
+            /usr/bin/python `which aws` lambda invoke \
+            --invocation-type Event \
+            --function-name $1 \
+            --region us-west-2 \
+            --payload file://~/NetBeansProjects/lambda/$1/$1.txt \
+            --profile default \
+            ~/NetBeansProjects/shellScripts/tests/$1.txt
+            echo
             echo `date` ">>>Process complete"
             echo
             echo ------end-------
             echo
             exit
-            exec echo `date` ">>>Process complete"
     fi ;
 fi ;
