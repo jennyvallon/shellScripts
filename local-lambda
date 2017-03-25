@@ -79,7 +79,7 @@ else
                     /usr/bin/python `which aws` lambda create-function \
                     --region us-west-2 \
                     --function-name $1 \
-                    --code S3Bucket=jennyvallon,S3Key=lambdafunctions/$1.zip 
+                    --code S3Bucket=jennyvallon,S3Key=lambdafunctions/$1.zip \
                     --role arn:aws:iam::825909266047:role/lambdaExecutor \
                     --handler $1.handler \
                     --runtime node4.3 \
