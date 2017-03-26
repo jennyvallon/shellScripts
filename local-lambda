@@ -96,12 +96,13 @@ else
             echo
             echo `date` ">>>Test Output:..."
             /usr/bin/python `which aws` lambda invoke \
-            --invocation-type Event \
+            --invocation-type RequestResponse \
             --function-name $1 \
             --region us-west-2 \
+            --log-type Tail \
             --payload file://~/NetBeansProjects/lambda/$1/$1.txt \
             --profile default \
-            ~/NetBeansProjects/shellScripts/tests/$1.txt
+            log.json
             echo
             echo `date` ">>>Process complete"
             echo
